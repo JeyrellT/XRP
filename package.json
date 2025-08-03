@@ -1,0 +1,67 @@
+{
+  "name": "xrp-trading-monitor-pro-enhanced",
+  "version": "2.0.0",
+  "description": "Aplicación web completa para monitorear el trading de XRP con análisis técnico avanzado - Versión Mejorada y Optimizada",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "serve": "python -m http.server 8000",
+    "build": "echo 'Static site - no build step required'",
+    "test": "echo 'Tests not implemented yet'",
+    "lint": "echo 'Linting not configured'",
+    "clean": "echo 'Cleaning temporary files...' && rm -rf .cache node_modules/.cache",
+    "docs": "echo 'Documentation available in README.md and IMPROVEMENTS.md'"
+  },
+  "keywords": [
+    "xrp",
+    "trading",
+    "crypto",
+    "cryptocurrency",
+    "technical-analysis",
+    "charts",
+    "indicators",
+    "real-time",
+    "market-data",
+    "financial",
+    "enhanced",
+    "optimized",
+    "performance-monitoring",
+    "error-handling",
+    "responsive-design"
+  ],
+  "author": "Jason Mora",
+  "license": "MIT",
+  "homepage": ".",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user/xrp-trading-monitor-pro"
+  },
+  "bugs": {
+    "url": "https://github.com/user/xrp-trading-monitor-pro/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "python": ">=3.6.0"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "files": [
+    "index.html",
+    "src/",
+    "README.md",
+    "IMPROVEMENTS.md"
+  ],
+  "directories": {
+    "src": "src"
+  },
+  "config": {
+    "port": "8000"
+  }
+}

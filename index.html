@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XRP Trading Monitor Pro v3.0</title>
+    <!-- Chart.js con adaptador de fechas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="src/css/styles.css">
+    <link rel="stylesheet" href="src/css/chart-improvements.css">
+    <link rel="stylesheet" href="src/css/advanced-analysis-modern.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <h1>XRP Trading Pro</h1>
+                <span style="color: var(--text-secondary);">Monitor Profesional</span>
+            </div>
+            <div class="status-indicators">
+                <div class="market-status">
+                    <div class="status-dot"></div>
+                    <span>Mercado Abierto</span>
+                </div>
+                <div class="update-time" id="update-time">
+                    Actualizado: --:--:--
+                </div>
+                <div class="performance-metrics" id="performance-metrics" style="display: none;">
+                    <!-- Métricas de rendimiento -->
+                </div>
+                <div class="modules-status" id="modules-status" style="display: none;">
+                    <span class="modules-label">Módulos:</span>
+                    <span class="module-indicator" id="advanced-modules-status" title="Módulos Avanzados">🔬</span>
+                    <span class="module-indicator" id="performance-status" title="Monitor de Rendimiento">⚡</span>
+                    <span class="module-indicator" id="volatility-status" title="Análisis de Volatilidad">📊</span>
+                    <span class="module-indicator" id="whale-status" title="Detector de Whales">🐋</span>
+                    <span class="module-indicator" id="arbitrage-status" title="Detector de Arbitraje">💹</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading-overlay">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p>Cargando datos del mercado...</p>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div id="error-container" class="error-container" style="display: none;">
+            <div class="error-icon">⚠️</div>
+            <div class="error-message" id="error-message">Error al cargar datos</div>
+            <div class="error-details" id="error-details"></div>
+            <button class="retry-button" onclick="app.retryConnection()">Reintentar</button>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content" style="display: none;">
+            <!-- Estadísticas principales -->
+            <div class="stats-ribbon">
+                <div class="stat-card" id="price-card">
+                    <div class="stat-label">Precio Actual</div>
+                    <div class="stat-value" id="current-price">-</div>
+                    <div class="stat-change" id="price-change">
+                        <span id="change-arrow">→</span>
+                        <span id="change-percent">0.00%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Volumen 24h</div>
+                    <div class="stat-value" id="volume-24h">-</div>
+                    <div class="stat-change">
+                        <span id="volume-change">+0.00%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Market Cap</div>
+                    <div class="stat-value" id="market-cap">-</div>
+                    <div class="stat-change">
+                        <span id="cap-rank">#6</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Máximo 24h</div>
+                    <div class="stat-value" id="high-24h">-</div>
+                    <div class="stat-change positive">
+                        <span>↑</span>
+                        <span id="high-distance">+0.00%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Mínimo 24h</div>
+                    <div class="stat-value" id="low-24h">-</div>
+                    <div class="stat-change negative">
+                        <span>↓</span>
+                        <span id="low-distance">-0.00%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid principal -->
+            <div class="main-grid">
+                <!-- Panel izquierdo -->
+                <div class="left-panel">
+                    <!-- Gráfico principal -->
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">Gráfico de Precios</div>
+                            <div class="timeframe-selector">
+                                <button class="time-button active" data-days="1">24h</button>
+                                <button class="time-button" data-days="7">7D</button>
+                                <button class="time-button" data-days="30">1M</button>
+                                <button class="time-button" data-days="90">3M</button>
+                                <button class="time-button" data-days="365">1A</button>
+                            </div>
+                        </div>
+                        <div class="price-chart-container">
+                            <div class="chart-title">Precio XRP/USD</div>
+                            <div class="chart-subtitle">Gráfico con medias móviles SMA 20 y SMA 50</div>
+                            <div class="chart-status live" id="chart-status">LIVE</div>
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Indicadores técnicos -->
+                    <div class="indicators-grid">
+                        <div class="indicator-card">
+                            <div class="indicator-header">
+                                <div class="indicator-title">RSI (14)</div>
+                                <div class="indicator-value" id="rsi-value">-</div>
+                            </div>
+                            <div class="indicator-chart">
+                                <canvas id="rsi-chart"></canvas>
+                            </div>
+                            <div class="indicator-description" id="rsi-desc">Calculando...</div>
+                        </div>
+
+                        <div class="indicator-card">
+                            <div class="indicator-header">
+                                <div class="indicator-title">MACD</div>
+                                <div class="indicator-value" id="macd-value">-</div>
+                            </div>
+                            <div class="indicator-chart">
+                                <canvas id="macd-chart"></canvas>
+                            </div>
+                            <div class="indicator-description" id="macd-desc">Calculando...</div>
+                        </div>
+
+                        <div class="indicator-card">
+                            <div class="indicator-header">
+                                <div class="indicator-title">Bandas de Bollinger</div>
+                                <div class="indicator-value" id="bb-value">-</div>
+                            </div>
+                            <div class="indicator-chart">
+                                <canvas id="bb-chart"></canvas>
+                            </div>
+                            <div class="indicator-description" id="bb-desc">Calculando...</div>
+                        </div>
+
+                        <div class="indicator-card">
+                            <div class="indicator-header">
+                                <div class="indicator-title">Estocástico</div>
+                                <div class="indicator-value" id="stoch-value">-</div>
+                            </div>
+                            <div class="indicator-chart">
+                                <canvas id="stoch-chart"></canvas>
+                            </div>
+                            <div class="indicator-description" id="stoch-desc">Calculando...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel derecho -->
+                <div class="trading-panel">
+                    <!-- Libro de órdenes -->
+                    <div class="order-book">
+                        <h3>📊 Libro de Órdenes</h3>
+                        <div class="order-row order-header">
+                            <div>Precio</div>
+                            <div>Cantidad</div>
+                            <div>Total</div>
+                        </div>
+                        <div id="ask-orders"></div>
+                        <div style="border-top: 2px solid var(--accent-blue); margin: 10px 0;"></div>
+                        <div id="bid-orders"></div>
+                    </div>
+
+                    <!-- Señales de trading -->
+                    <div class="trading-signals">
+                        <h3>💡 Señales de Trading</h3>
+                        <div id="trading-signals-container">
+                            <!-- Las señales se generarán dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análisis avanzado -->
+            <div class="analysis-section">
+                <div class="analysis-header">
+                    <div class="analysis-title">🎯 Análisis y Recomendaciones</div>
+                    <div class="confidence-score">
+                        <div class="confidence-label">Confianza:</div>
+                        <div class="confidence-value" id="confidence-score">--%</div>
+                    </div>
+                </div>
+
+                <div class="recommendation-box">
+                    <div class="recommendation-title">
+                        <div class="recommendation-icon" id="rec-icon">📈</div>
+                        <span id="main-recommendation">Analizando mercado...</span>
+                    </div>
+                    <div class="recommendation-content">
+                        <div class="rec-item">
+                            <span class="rec-label">Entrada sugerida:</span>
+                            <span class="rec-value" id="entry-price">-</span>
+                        </div>
+                        <div class="rec-item">
+                            <span class="rec-label">Stop Loss:</span>
+                            <span class="rec-value" id="stop-loss">-</span>
+                        </div>
+                        <div class="rec-item">
+                            <span class="rec-label">Take Profit:</span>
+                            <span class="rec-value" id="take-profit">-</span>
+                        </div>
+                        <div class="rec-item">
+                            <span class="rec-label">Relación R/R:</span>
+                            <span class="rec-value" id="risk-reward">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="levels-container">
+                    <div class="level-box">
+                        <div class="level-title">
+                            <span class="support-icon">🟢</span>
+                            <span>Niveles de Soporte</span>
+                        </div>
+                        <div id="support-levels">
+                            <!-- Se generarán dinámicamente -->
+                        </div>
+                    </div>
+                    <div class="level-box">
+                        <div class="level-title">
+                            <span class="resistance-icon">🔴</span>
+                            <span>Niveles de Resistencia</span>
+                        </div>
+                        <div id="resistance-levels">
+                            <!-- Se generarán dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Análisis Avanzados -->
+                <div class="advanced-analysis-panel" id="advanced-analysis" style="display: none;">
+                    <div class="advanced-header">
+                        <h3>🔬 Análisis Avanzado</h3>
+                        <div class="advanced-status" id="advanced-status">
+                            <span class="status-indicator" id="advanced-indicator">🔄</span>
+                            <span id="advanced-status-text">Iniciando...</span>
+                        </div>
+                    </div>
+
+                    <!-- Controles del panel -->
+                    <div class="advanced-controls">
+                        <button class="advanced-control-btn" id="refresh-analysis" onclick="app.refreshAdvancedAnalysis()">
+                            🔄 Actualizar
+                        </button>
+                        <button class="advanced-control-btn" id="toggle-auto-refresh" onclick="app.toggleAutoRefresh()">
+                            ⏱️ Auto-actualización
+                        </button>
+                        <button class="advanced-control-btn" id="export-data" onclick="app.exportAnalysisData()">
+                            📊 Exportar
+                        </button>
+                        <button class="advanced-control-btn" id="toggle-settings" onclick="app.toggleAdvancedSettings()">
+                            ⚙️ Configuración
+                        </button>
+                    </div>
+
+                    <!-- Panel de configuración expandible -->
+                    <div class="advanced-settings" id="advanced-settings">
+                        <h4>⚙️ Configuración del Análisis</h4>
+                        <div class="settings-grid">
+                            <label>
+                                <input type="checkbox" id="enable-notifications" checked> 
+                                Notificaciones push
+                            </label>
+                            <label>
+                                <input type="range" id="update-frequency" min="5" max="60" value="30"> 
+                                Frecuencia de actualización: <span id="freq-value">30s</span>
+                            </label>
+                            <label>
+                                <input type="checkbox" id="enable-sound" checked> 
+                                Alertas sonoras
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Grid de tarjetas modernas -->
+                    <div class="advanced-cards-grid">
+                        <!-- Performance Monitor -->
+                        <div class="advanced-card" data-category="performance">
+                            <div class="advanced-title">⚡ Monitor de Rendimiento</div>
+                            <div class="advanced-content">
+                                <div class="advanced-metric">
+                                    <span>Latencia API:</span>
+                                    <div class="metric-container">
+                                        <span id="performance-latency" class="metric-value">-</span>
+                                        <div class="metric-mini-chart"></div>
+                                        <div class="metric-tooltip">Tiempo de respuesta promedio de la API</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Memoria Usada:</span>
+                                    <div class="metric-container">
+                                        <span id="performance-memory" class="metric-value">-</span>
+                                        <span class="metric-status-indicator neutral"></span>
+                                        <div class="metric-tooltip">Uso de memoria del navegador</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Estado Red:</span>
+                                    <div class="metric-container">
+                                        <span id="performance-network" class="metric-value">-</span>
+                                        <span class="metric-status-indicator positive"></span>
+                                        <div class="metric-tooltip">Estado de conectividad</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>FPS:</span>
+                                    <div class="metric-container">
+                                        <span id="performance-fps" class="metric-value">-</span>
+                                        <span class="metric-status-indicator positive"></span>
+                                        <div class="metric-tooltip">Frames por segundo de la interfaz</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Volatilidad -->
+                        <div class="advanced-card" data-category="volatility">
+                            <div class="advanced-title">📊 Análisis de Volatilidad</div>
+                            <div class="advanced-content">
+                                <div class="advanced-metric">
+                                    <span>Volatilidad Actual:</span>
+                                    <div class="metric-container">
+                                        <span id="volatility-current" class="metric-value risk">-</span>
+                                        <div class="metric-tooltip">Volatilidad calculada en tiempo real</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Volatilidad 24h:</span>
+                                    <div class="metric-container">
+                                        <span id="volatility-24h" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Volatilidad promedio de las últimas 24 horas</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Tendencia:</span>
+                                    <div class="metric-container">
+                                        <span id="volatility-trend" class="metric-value trend">-</span>
+                                        <span class="metric-status-indicator neutral"></span>
+                                        <div class="metric-tooltip">Dirección de la volatilidad</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Nivel de Riesgo:</span>
+                                    <div class="metric-container">
+                                        <span id="volatility-risk" class="metric-value risk">-</span>
+                                        <div class="metric-tooltip">Clasificación del riesgo actual</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>VaR (Value at Risk):</span>
+                                    <div class="metric-container">
+                                        <span id="volatility-var" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Máxima pérdida esperada con 95% de confianza</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actividad Whale -->
+                        <div class="advanced-card" data-category="whale">
+                            <div class="advanced-title">🐋 Actividad Whale</div>
+                            <div class="advanced-content">
+                                <div class="advanced-metric">
+                                    <span>Señales Detectadas (24h):</span>
+                                    <div class="metric-container">
+                                        <span id="whale-signals" class="metric-value">-</span>
+                                        <span class="metric-status-indicator warning"></span>
+                                        <div class="metric-tooltip">Transacciones grandes detectadas</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Última Actividad:</span>
+                                    <div class="metric-container">
+                                        <span id="whale-last-activity" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Tiempo desde la última transacción whale</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Confianza:</span>
+                                    <div class="metric-container">
+                                        <span id="whale-confidence" class="metric-value confidence">-</span>
+                                        <div class="metric-tooltip">Nivel de confianza en las señales</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Impacto de Mercado:</span>
+                                    <div class="metric-container">
+                                        <span id="whale-impact" class="metric-value impact">-</span>
+                                        <div class="metric-tooltip">Efecto esperado en el precio</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Volumen Whale:</span>
+                                    <div class="metric-container">
+                                        <span id="whale-volume" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Volumen total de transacciones whale</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Arbitraje -->
+                        <div class="advanced-card" data-category="arbitrage">
+                            <div class="advanced-title">⚡ Oportunidades de Arbitraje</div>
+                            <div class="advanced-content">
+                                <div class="advanced-metric">
+                                    <span>Oportunidades Activas:</span>
+                                    <div class="metric-container">
+                                        <span id="arbitrage-count" class="metric-value">-</span>
+                                        <span class="metric-status-indicator positive"></span>
+                                        <div class="metric-tooltip">Diferencias de precio aprovechables</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Máximo Profit:</span>
+                                    <div class="metric-container">
+                                        <span id="arbitrage-max-profit" class="metric-value profit">-</span>
+                                        <div class="metric-tooltip">Mayor ganancia posible identificada</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Mejor Exchange:</span>
+                                    <div class="metric-container">
+                                        <span id="arbitrage-best-exchange" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Exchange con mejor oportunidad</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Spread Promedio:</span>
+                                    <div class="metric-container">
+                                        <span id="arbitrage-avg-spread" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Diferencia promedio entre exchanges</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Latencia Promedio:</span>
+                                    <div class="metric-container">
+                                        <span id="arbitrage-latency" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Tiempo de respuesta de los exchanges</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Portfolio Analytics -->
+                        <div class="advanced-card" data-category="portfolio">
+                            <div class="advanced-title">💼 Análisis de Portfolio</div>
+                            <div class="advanced-content">
+                                <div class="advanced-metric">
+                                    <span>Performance 24h:</span>
+                                    <div class="metric-container">
+                                        <span id="portfolio-performance-24h" class="metric-value performance">-</span>
+                                        <span class="metric-status-indicator positive"></span>
+                                        <div class="metric-tooltip">Rendimiento en las últimas 24 horas</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Performance Total:</span>
+                                    <div class="metric-container">
+                                        <span id="portfolio-performance" class="metric-value performance">-</span>
+                                        <div class="metric-tooltip">Rendimiento total del portfolio</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Riesgo (Beta):</span>
+                                    <div class="metric-container">
+                                        <span id="portfolio-risk" class="metric-value risk">-</span>
+                                        <div class="metric-tooltip">Medida de riesgo sistemático</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Sharpe Ratio:</span>
+                                    <div class="metric-container">
+                                        <span id="portfolio-sharpe" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Ratio rentabilidad/riesgo</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Diversificación:</span>
+                                    <div class="metric-container">
+                                        <span id="portfolio-diversification" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Nivel de diversificación del portfolio</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Análisis Técnico Avanzado -->
+                        <div class="advanced-card" data-category="technical">
+                            <div class="advanced-title">📈 Análisis Técnico Avanzado</div>
+                            <div class="advanced-content">
+                                <div class="advanced-metric">
+                                    <span>Momentum Score:</span>
+                                    <div class="metric-container">
+                                        <span id="technical-momentum" class="metric-value">-</span>
+                                        <div class="metric-mini-chart"></div>
+                                        <div class="metric-tooltip">Fuerza del movimiento actual (0-100)</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Volume Profile:</span>
+                                    <div class="metric-container">
+                                        <span id="technical-volume-profile" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Análisis del perfil de volumen</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Support/Resistance:</span>
+                                    <div class="metric-container">
+                                        <span id="technical-support-resistance" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Niveles técnicos clave identificados</div>
+                                    </div>
+                                </div>
+                                <div class="advanced-metric">
+                                    <span>Pattern Recognition:</span>
+                                    <div class="metric-container">
+                                        <span id="technical-patterns" class="metric-value">-</span>
+                                        <div class="metric-tooltip">Patrones gráficos detectados</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div id="alert-banner" class="alert-banner">
+            <div class="alert-header">
+                <div class="alert-title" id="alert-title">Alerta</div>
+                <button class="alert-close" onclick="app.hideAlert()">×</button>
+            </div>
+            <div class="alert-content" id="alert-content"></div>
+        </div>
+
+        <!-- Toggle para Análisis Avanzado -->
+        <button class="advanced-toggle" id="advanced-toggle" onclick="app.toggleAdvancedAnalysis()" title="Mostrar/Ocultar Análisis Avanzado">
+            🔬
+        </button>
+    </div>
+
+    <!-- Scripts - Versión Final Optimizada con Módulos Avanzados -->
+    <script src="src/js/config.js"></script>
+    <script src="src/js/utils.js"></script>
+    <script src="src/js/api.js"></script>
+    <script src="src/js/indicators.js"></script>
+    <script src="src/js/charts.js"></script>
+    <script src="src/js/trading.js"></script>
+    
+    <!-- Módulos Avanzados de Análisis -->
+    <script src="src/js/performance-monitor.js"></script>
+    <script src="src/js/parallel-processor.js"></script>
+    <script src="src/js/crypto-data-manager.js"></script>
+    <script src="src/js/volatility-analyzer.js"></script>
+    <script src="src/js/arbitrage-detector.js"></script>
+    <script src="src/js/whale-detector.js"></script>
+    <script src="src/js/smart-alert-system.js"></script>
+    <script src="src/js/portfolio-analytics.js"></script>
+    <script src="src/js/backtesting-engine.js"></script>
+    
+    <!-- Integración de Módulos Avanzados -->
+    <script src="src/js/advanced-integration.js"></script>
+    <script src="src/js/advanced-analysis-interactive.js"></script>
+    
+    <!-- Diagnóstico y Corrección de Análisis Avanzado -->
+    <script src="src/js/debug-advanced-analysis.js"></script>
+    <script src="src/js/advanced-analysis-fixes.js"></script>
+    <script src="src/js/advanced-analysis-dashboard.js"></script>
+    <script src="src/js/advanced-analysis-activator.js"></script>
+    
+    <!-- App Mejorada con Integración -->
+    <script src="src/js/app_improved.js"></script>
+    
+    <script>
+        // Inicializar aplicación cuando todo esté cargado
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                console.log('🚀 Iniciando XRP Trading Monitor Pro...');
+                
+                // Esperar a que se inicialicen los módulos avanzados
+                if (window.advancedIntegration) {
+                    await window.advancedIntegration.waitForInitialization();
+                }
+                
+                // Inicializar la aplicación principal
+                window.app = new XRPTradingApp();
+                await window.app.initialize();
+                
+                // Inicializar interfaz avanzada interactiva
+                setTimeout(() => {
+                    if (window.app && window.app.initializeAdvancedUI) {
+                        window.app.initializeAdvancedUI();
+                        console.log('🎨 Interfaz avanzada activada con interactividad');
+                    }
+                }, 2000);
+                
+                console.log('✅ Aplicación completamente inicializada');
+            } catch (error) {
+                console.error('❌ Error inicializando la aplicación:', error);
+            }
+        });
+    </script>
+</body>
+</html>
